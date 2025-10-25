@@ -1,13 +1,11 @@
 {
-  "name": "rsvp-api",
+  "name": "rsvpku",
   "version": "1.0.0",
   "description": "API RSVP undangan digital menggunakan Upstash Redis",
   "type": "module",
   "scripts": {
     "start": "vercel dev"
   },
-  "dependencies": {},
-  "keywords": ["vercel", "redis", "upstash", "rsvp", "api"],
-  "author": "mezurer",
+  "keywords": ["vercel", "redis", "upstash", "rsvp"],
   "license": "MIT"
 }
