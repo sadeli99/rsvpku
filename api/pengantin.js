@@ -1,4 +1,4 @@
-// API Data Pengantin
+// api/pengantin.js
 export default async function handler(req, res) {
   const UPSTASH_URL = "https://immune-civet-10584.upstash.io";
   const AUTH_TOKEN =
@@ -11,6 +11,7 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  // ===== Fungsi bantu =====
   async function getData() {
     const r = await fetch(`${UPSTASH_URL}/get/pengantin`, {
       headers: { Authorization: AUTH_TOKEN },
@@ -34,11 +35,11 @@ export default async function handler(req, res) {
     });
   }
 
-  // ==== GET: Ambil data per ID atau namaPasangan ====
+  // ==== GET Data Pengantin per filter ====
   if (req.method === "GET") {
     try {
       const data = await getData();
-      const { id, namaPasangan } = req.query;
+      const { id, namaPasangan, email } = req.query;
 
       if (id) {
         const found = data.find((p) => p.id === id);
@@ -52,7 +53,13 @@ export default async function handler(req, res) {
         return res.status(200).json(found);
       }
 
-      // Jika tidak ada filter, jangan tampilkan semua data
+      if (email) {
+        const found = data.find((p) => p.email.toLowerCase() === email.toLowerCase());
+        if (!found) return res.status(404).json({ error: "Data pengantin tidak ditemukan" });
+        return res.status(200).json(found);
+      }
+
+      // Tidak ada filter → kosongkan
       return res.status(200).json([]);
     } catch (err) {
       console.error("❌ GET Error:", err);
@@ -60,7 +67,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // ==== POST Tambah Pengantin Baru ====
+  // ==== POST Tambah pengantin baru ====
   if (req.method === "POST") {
     try {
       let body = "";
@@ -78,14 +85,14 @@ export default async function handler(req, res) {
       data.push({ id, namaPasangan, temaUndangan, paketUndangan, masaAktif, foto, email, sandi });
       await saveData(data);
 
-      return res.status(200).json({ success: true, data: { id, namaPasangan } });
+      return res.status(200).json({ success: true, data: { id, namaPasangan, email } });
     } catch (err) {
       console.error("❌ POST Error:", err);
       return res.status(500).json({ error: "Gagal menyimpan data pengantin" });
     }
   }
 
-  // ==== PUT Update Pengantin ====
+  // ==== PUT Update pengantin ====
   if (req.method === "PUT") {
     try {
       let body = "";
@@ -110,7 +117,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // ==== DELETE Pengantin berdasarkan ID ====
+  // ==== DELETE pengantin berdasarkan ID ====
   if (req.method === "DELETE") {
     try {
       let body = "";
