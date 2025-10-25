@@ -1,15 +1,10 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "api/rsvp.js",
-      "use": "@vercel/node"
-    }
+    { "src": "api/rsvp.js", "use": "@vercel/node" },
+    { "src": "api/buku.js", "use": "@vercel/node" }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/rsvp.js"
-    }
+    { "src": "/api/(.*)", "dest": "/api/$1" }
   ]
 }
