@@ -1,7 +1,7 @@
 {
-  "name": "rsvp-api",
+  "name": "undangan-api",
   "version": "1.0.0",
-  "description": "API RSVP dan Buku Tamu Undangan Digital menggunakan Upstash Redis",
+  "description": "API Buku Tamu dan RSVP untuk Undangan Digital menggunakan Upstash Redis",
   "type": "module",
   "scripts": {
     "start": "vercel dev",
