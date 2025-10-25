@@ -5,8 +5,5 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" }
-  ],
-  "env": {
-    "UPSTASH_AUTH_TOKEN": "Bearer ASlYAAIncDJhMjc4ZDRjYzU4NDM0M2E0OWUwY2Q0N2M3Y2RmZmI2ZnAyMTA1ODQ"
-  }
+  ]
 }
