@@ -40,29 +40,42 @@ export default async function handler(req, res) {
       return res.status(200).json(current);
     }
 
-    // POST → tambah tamu
-    if (req.method === "POST") {
-      const { nama, pesan } = req.body;
-      if (!nama || !pesan) return res.status(400).json({ error: "Data tidak lengkap" });
+  // POST → tambah tamu
+if (req.method === "POST") {
+  try {
+    const body = await req.json(); // <=== penting
+    const { nama, pesan } = body;
+    if (!nama || !pesan) return res.status(400).json({ error: "Data tidak lengkap" });
 
-      const current = await getData();
-      const newTamu = { nama, pesan };
-      current.tamu.push(newTamu);
-      await saveData(current);
-      return res.status(200).json({ success: true, data: newTamu });
-    }
+    const current = await getData();
+    const newTamu = { nama, pesan };
+    current.tamu.push(newTamu);
+    await saveData(current);
+    return res.status(200).json({ success: true, data: newTamu });
+  } catch (err) {
+    console.error("❌ Error POST:", err);
+    return res.status(500).json({ error: "Gagal menyimpan data" });
+  }
+}
 
-    // DELETE → hapus tamu berdasarkan nama
-    if (req.method === "DELETE") {
-      const { nama } = req.body;
-      if (!nama) return res.status(400).json({ error: "Nama tamu wajib diisi" });
+// DELETE → hapus tamu berdasarkan nama
+if (req.method === "DELETE") {
+  try {
+    const body = await req.json(); // <=== penting
+    const { nama } = body;
+    if (!nama) return res.status(400).json({ error: "Nama tamu wajib diisi" });
 
-      const current = await getData();
-      const filtered = current.tamu.filter(t => t.nama !== nama);
-      current.tamu = filtered;
-      await saveData(current);
-      return res.status(200).json({ success: true, deleted: nama });
-    }
+    const current = await getData();
+    current.tamu = current.tamu.filter(t => t.nama !== nama);
+    await saveData(current);
+
+    return res.status(200).json({ success: true, deleted: nama });
+  } catch (err) {
+    console.error("❌ Error DELETE:", err);
+    return res.status(500).json({ error: "Gagal menghapus data" });
+  }
+}
+
 
     // Method lain tidak diizinkan
     return res.status(405).json({ error: "Method tidak diizinkan" });
