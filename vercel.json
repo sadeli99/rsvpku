@@ -3,11 +3,15 @@
   "builds": [
     { "src": "index.js", "use": "@vercel/node" },
     { "src": "api/rsvp.js", "use": "@vercel/node" },
-    { "src": "api/buku.js", "use": "@vercel/node" }
+    { "src": "api/buku.js", "use": "@vercel/node" },
+    { "src": "api/pengantin.js", "use": "@vercel/node" }
+    
   ],
   "routes": [
     { "src": "^/$", "dest": "/index.js" },
     { "src": "/api/rsvp", "dest": "/api/rsvp.js" },
-    { "src": "/api/buku", "dest": "/api/buku.js" }
+    { "src": "/api/buku", "dest": "/api/buku.js" }, 
+    { "src": "/api/pengantin", "dest": "/api/pengantin.js" }
+    
   ]
 }
