@@ -1,10 +1,12 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/rsvp.js", "use": "@vercel/node" },
-    { "src": "api/buku.js", "use": "@vercel/node" }
+    { "src": "api/*.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" }
-  ]
+  ],
+  "env": {
+    "UPSTASH_AUTH_TOKEN": "Bearer ASlYAAIncDJhMjc4ZDRjYzU4NDM0M2E0OWUwY2Q0N2M3Y2RmZmI2ZnAyMTA1ODQ"
+  }
 }
