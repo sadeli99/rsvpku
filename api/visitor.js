@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   const pasangan = req.query.pasangan;
   const tamu = req.query.to;
-  const view = req.query.view; // tambah parameter view
+  const view = req.query.view;
 
   if (!pasangan)
     return res.status(400).json({ error: "Parameter ?pasangan wajib diisi" });
@@ -25,10 +25,20 @@ export default async function handler(req, res) {
     const data = await getRes.json();
 
     try {
-      const parsed = data.result ? JSON.parse(data.result) : { pengunjung: [] };
-      if (!parsed.pengunjung || !Array.isArray(parsed.pengunjung))
-        return { pengunjung: [] };
-      return parsed;
+      if (!data.result) return { pengunjung: [] };
+
+      const parsed = JSON.parse(data.result);
+
+      // Auto deteksi struktur data lama
+      if (parsed.visitors && Array.isArray(parsed.visitors)) {
+        return { pengunjung: parsed.visitors };
+      }
+
+      if (parsed.pengunjung && Array.isArray(parsed.pengunjung)) {
+        return { pengunjung: parsed.pengunjung };
+      }
+
+      return { pengunjung: [] };
     } catch {
       return { pengunjung: [] };
     }
@@ -50,7 +60,6 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const data = await getData();
 
-      // jika view=all → tampilkan semua data pengunjung
       if (view === "all") {
         return res.status(200).json({
           pasangan,
@@ -59,7 +68,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // default → tampilkan ringkasan
       return res.status(200).json({
         pasangan,
         totalPengunjung: data.pengunjung.length,
@@ -91,7 +99,7 @@ export default async function handler(req, res) {
       };
 
       current.pengunjung.push(newVisitor);
-      await saveData(current);
+      await saveData({ pengunjung: current.pengunjung });
 
       return res.status(200).json({
         success: true,
