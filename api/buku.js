@@ -1,15 +1,43 @@
 // api/buku.js
-// API Buku Tamu untuk undangan digital pakai Upstash Redis
+// API Buku Tamu dinamis berdasarkan pasangan (ambil token + URL Upstash dari API pengantin)
+
+// 🔎 Ambil token & URL Upstash dari API pengantin
+async function getPasanganConfig(pasangan) {
+  // Pastikan endpoint-nya benar → ini API pengantin
+  const r = await fetch(`https://ipa-green.vercel.app/api/pengantin?namaPasangan=${pasangan}`);
+
+  if (!r.ok) throw new Error("Gagal mengambil konfigurasi pasangan");
+
+  return await r.json();
+}
 
 export default async function handler(req, res) {
-  const UPSTASH_URL = "https://immune-civet-10584.upstash.io";
-  const AUTH_TOKEN =
-    process.env.UPSTASH_AUTH_TOKEN ||
-    "Bearer ASlYAAIncDJhMjc4ZDRjYzU4NDM0M2E0OWUwY2Q0N2M3Y2RmZmI2ZnAyMTA1ODQ";
-
   const pasangan = req.query.pasangan;
   if (!pasangan) {
-    return res.status(400).json({ error: "Parameter ?pasangan=nama-pengantin wajib diisi." });
+    return res.status(400).json({
+      error: "Parameter ?pasangan= wajib diisi."
+    });
+  }
+
+  // 🔥 Ambil konfigurasi pasangan (Upstash URL + Token)
+  let pasanganConfig;
+  try {
+    pasanganConfig = await getPasanganConfig(pasangan);
+  } catch (err) {
+    console.error("❌ Gagal ambil config pasangan:", err);
+    return res.status(500).json({
+      error: "Config pasangan tidak ditemukan"
+    });
+  }
+
+  // Ambil data Upstash dari API pengantin
+  const UPSTASH_URL = pasanganConfig.upstash_url;
+  const AUTH_TOKEN = pasanganConfig.upstash_token;
+
+  if (!UPSTASH_URL || !AUTH_TOKEN) {
+    return res.status(500).json({
+      error: "Upstash URL/token tidak lengkap untuk pasangan ini"
+    });
   }
 
   // ==== CORS ====
@@ -18,12 +46,14 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  // ==== Helper: ambil dan simpan data ====
+  // ==== Helper: ambil & simpan data ====
   async function getData() {
     const r = await fetch(`${UPSTASH_URL}/get/buku:${pasangan}`, {
       headers: { Authorization: AUTH_TOKEN },
     });
+
     const data = await r.json();
+
     try {
       return data.result ? JSON.parse(data.result) : { tamu: [] };
     } catch {
@@ -40,10 +70,11 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify(newData),
     });
+
     return await r.json();
   }
 
-  // ==== GET ====
+  // ==== GET daftar tamu ====
   if (req.method === "GET") {
     try {
       const data = await getData();
@@ -54,15 +85,15 @@ export default async function handler(req, res) {
     }
   }
 
-  // ==== POST ====
+  // ==== POST buku tamu ====
   if (req.method === "POST") {
     try {
-      // 🔧 Parse body manual biar aman di semua runtime
       let body = "";
       await new Promise((resolve) => {
         req.on("data", (chunk) => (body += chunk));
         req.on("end", resolve);
       });
+
       const { nama, pesan } = JSON.parse(body || "{}");
 
       if (!nama || !pesan) {
@@ -70,18 +101,26 @@ export default async function handler(req, res) {
       }
 
       const data = await getData();
-      const newTamu = { nama, pesan, waktu: new Date().toISOString() };
+      const newTamu = {
+        nama,
+        pesan,
+        waktu: new Date().toISOString()
+      };
+
       data.tamu.push(newTamu);
       await saveData(data);
 
-      return res.status(200).json({ success: true, data: newTamu });
+      return res.status(200).json({
+        success: true,
+        data: newTamu
+      });
     } catch (err) {
       console.error("❌ POST Error:", err);
       return res.status(500).json({ error: "Gagal menyimpan tamu" });
     }
   }
 
-  // ==== DELETE ====
+  // ==== DELETE tamu ====
   if (req.method === "DELETE") {
     try {
       let body = "";
@@ -89,20 +128,27 @@ export default async function handler(req, res) {
         req.on("data", (chunk) => (body += chunk));
         req.on("end", resolve);
       });
+
       const { nama } = JSON.parse(body || "{}");
-      if (!nama) return res.status(400).json({ error: "Nama wajib diisi" });
+
+      if (!nama) {
+        return res.status(400).json({ error: "Nama wajib diisi" });
+      }
 
       const data = await getData();
       data.tamu = data.tamu.filter((t) => t.nama !== nama);
+
       await saveData(data);
 
-      return res.status(200).json({ success: true, deleted: nama });
+      return res.status(200).json({
+        success: true,
+        deleted: nama
+      });
     } catch (err) {
       console.error("❌ DELETE Error:", err);
       return res.status(500).json({ error: "Gagal menghapus tamu" });
     }
   }
 
-  // ==== Default ====
   return res.status(405).json({ error: "Method tidak diizinkan" });
 }
