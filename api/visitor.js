@@ -1,9 +1,14 @@
-export default async function handler(req, res) {
-  const UPSTASH_URL = "https://immune-civet-10584.upstash.io";
-  const AUTH_TOKEN =
-    process.env.UPSTASH_AUTH_TOKEN ||
-    "Bearer ASlYAAIncDJhMjc4ZDRjYzU4NDM0M2E0OWUwY2Q0N2M3Y2RmZmI2ZnAyMTA1ODQ";
+// api/visitor.js
+// Visitor tracker dinamis berdasarkan pasangan (ambil token & URL Upstash dari API pengantin)
 
+// 🔎 Ambil token & URL Upstash dari API pengantin
+async function getPasanganConfig(pasangan) {
+  const r = await fetch(`https://ipa-green.vercel.app/api/pengantin?namaPasangan=${pasangan}`);
+  if (!r.ok) throw new Error("Gagal mengambil konfigurasi pasangan");
+  return await r.json();
+}
+
+export default async function handler(req, res) {
   const pasangan = req.query.pasangan;
   const tamu = req.query.to;
   const view = req.query.view;
@@ -11,10 +16,29 @@ export default async function handler(req, res) {
   if (!pasangan)
     return res.status(400).json({ error: "Parameter ?pasangan wajib diisi" });
 
+  // 🔥 Ambil konfigurasi pasangan (Upstash URL + Token)
+  let pasanganConfig;
+  try {
+    pasanganConfig = await getPasanganConfig(pasangan);
+  } catch (err) {
+    console.error("❌ Gagal ambil config pasangan:", err);
+    return res.status(500).json({ error: "Config pasangan tidak ditemukan" });
+  }
+
+  const UPSTASH_URL = pasanganConfig.upstash_url;
+  const AUTH_TOKEN = pasanganConfig.upstash_token;
+
+  if (!UPSTASH_URL || !AUTH_TOKEN) {
+    return res.status(500).json({
+      error: "Upstash URL/token tidak lengkap untuk pasangan ini"
+    });
+  }
+
   // ==== CORS ====
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
   if (req.method === "OPTIONS") return res.status(200).end();
 
   // ==== Fungsi bantu ====
@@ -22,6 +46,7 @@ export default async function handler(req, res) {
     const getRes = await fetch(`${UPSTASH_URL}/get/visitor:${pasangan}`, {
       headers: { Authorization: AUTH_TOKEN },
     });
+
     const data = await getRes.json();
 
     try {
@@ -29,14 +54,12 @@ export default async function handler(req, res) {
 
       const parsed = JSON.parse(data.result);
 
-      // Auto deteksi struktur data lama
-      if (parsed.visitors && Array.isArray(parsed.visitors)) {
+      // Auto deteksi struktur lama
+      if (parsed.visitors && Array.isArray(parsed.visitors))
         return { pengunjung: parsed.visitors };
-      }
 
-      if (parsed.pengunjung && Array.isArray(parsed.pengunjung)) {
+      if (parsed.pengunjung && Array.isArray(parsed.pengunjung))
         return { pengunjung: parsed.pengunjung };
-      }
 
       return { pengunjung: [] };
     } catch {
@@ -56,7 +79,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ==== GET ====
+    // ==== GET Semua visitor ====
     if (req.method === "GET") {
       const data = await getData();
 
@@ -74,14 +97,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // ==== POST ====
+    // ==== POST Tambah visitor ====
     if (req.method === "POST") {
       if (!tamu)
-        return res
-          .status(400)
-          .json({ error: "Parameter ?to (nama tamu) wajib diisi" });
+        return res.status(400).json({
+          error: "Parameter ?to (nama tamu) wajib diisi",
+        });
 
       const current = await getData();
+
       const sudahAda = current.pengunjung.find(
         (v) => v.nama.toLowerCase() === tamu.toLowerCase()
       );
