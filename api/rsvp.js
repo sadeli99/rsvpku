@@ -3,7 +3,7 @@
 
 // 🔎 Ambil token & URL Upstash dari API pengantin
 async function getPasanganConfig(pasangan) {
-  const r = await fetch(`https://ipa-green.vercel.app/api/pengantin?namaPasangan=${pasangan}`);
+  const r = await fetch(`https://ipa-green.vercel.app/api/pengantin?namaPasangan=${pasangan}&tokenpasangan=true`);
   if (!r.ok) throw new Error("Gagal mengambil konfigurasi pasangan");
   return await r.json();
 }
